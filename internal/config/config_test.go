@@ -143,3 +143,19 @@ func TestRejectsMissingEnvironmentVariable(t *testing.T) {
 		t.Fatalf("expected missing environment variable error, got %v", err)
 	}
 }
+
+
+func TestExampleConfigurationLoads(t *testing.T) {
+	t.Setenv("OPENCODE_GO_API_KEY", "test-only-key")
+	path := filepath.Join("..", "..", "configs", "config.example.yaml")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.Upstreams["opencode-go"].BaseURL; got != "https://opencode.ai/inference/go" {
+		t.Fatalf("unexpected OpenCode Go base URL: %q", got)
+	}
+	if got := cfg.Upstreams["opencode-go"].Headers["Authorization"]; got != "Bearer test-only-key" {
+		t.Fatalf("OpenCode Go API key was not expanded: %q", got)
+	}
+}
