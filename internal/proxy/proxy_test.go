@@ -183,6 +183,13 @@ func TestRemoteModeRequiresSharedToken(t *testing.T) {
 
 func TestSSEIsForwardedWithoutBuffering(t *testing.T) {
 	release := make(chan struct{})
+	defer func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	}()
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		flusher := w.(http.Flusher)
@@ -267,6 +274,13 @@ func TestClientCancellationPropagatesUpstream(t *testing.T) {
 func TestConcurrencyLimit(t *testing.T) {
 	entered := make(chan struct{})
 	release := make(chan struct{})
+	defer func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	}()
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		close(entered)
 		<-release
@@ -280,10 +294,11 @@ func TestConcurrencyLimit(t *testing.T) {
 	proxyServer := httptest.NewServer(handler)
 	defer proxyServer.Close()
 
+	client := &http.Client{Timeout: 2 * time.Second}
 	firstDone := make(chan struct{})
 	go func() {
 		defer close(firstDone)
-		response, err := http.Get(proxyServer.URL + "/local/one")
+		response, err := client.Get(proxyServer.URL + "/local/one")
 		if err == nil {
 			_ = response.Body.Close()
 		}
@@ -294,7 +309,7 @@ func TestConcurrencyLimit(t *testing.T) {
 		t.Fatal("first request did not reach the upstream")
 	}
 
-	response, err := http.Get(proxyServer.URL + "/local/two")
+	response, err := client.Get(proxyServer.URL + "/local/two")
 	if err != nil {
 		t.Fatal(err)
 	}

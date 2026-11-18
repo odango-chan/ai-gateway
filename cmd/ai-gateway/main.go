@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -39,11 +40,14 @@ func run(configPath string, logger *slog.Logger) error {
 	defer handler.CloseIdleConnections()
 
 	server := &http.Server{
-		Addr:              cfg.Server.Listen,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       90 * time.Second,
 		MaxHeaderBytes:    1 << 20,
+	}
+	listener, err := net.Listen("tcp", cfg.Server.Listen)
+	if err != nil {
+		return err
 	}
 
 	signalContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -51,8 +55,8 @@ func run(configPath string, logger *slog.Logger) error {
 
 	serverErrors := make(chan error, 1)
 	go func() {
-		logger.Info("listening", "address", cfg.Server.Listen)
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Info("listening", "address", listener.Addr().String())
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErrors <- err
 		}
 	}()
