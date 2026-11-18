@@ -98,6 +98,10 @@ curl http://127.0.0.1:8787/opencode-go/openai/v1/chat/completions \
 
 Gateway 本身不实现模型 API。调用方负责按照目标上游的协议构造请求并解释响应。
 
+## 架构
+
+见[架构说明](docs/architecture.md)，了解本机与可信内网部署方式、请求流转、共享上游凭证及明确不包含的功能。架构图使用 Mermaid 编写，源码直接保存在该文档中。
+
 ## 配置
 
 完整配置说明见[配置文档](docs/configuration.md)，包括环境变量展开、路由规则和远程监听要求。
