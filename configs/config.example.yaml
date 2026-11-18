@@ -16,7 +16,9 @@ limits:
 
 upstreams:
   opencode-go:
-    base_url: "https://opencode.ai/inference/go/openai"
+    # /opencode-go/openai/v1/chat/completions -> /inference/go/openai/v1/chat/completions
+    # /opencode-go/v1/models -> /inference/go/v1/models
+    base_url: "https://opencode.ai/inference/go"
     headers:
       Authorization: "Bearer ${OPENCODE_GO_API_KEY}"
 
