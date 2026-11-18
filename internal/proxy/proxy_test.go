@@ -18,7 +18,7 @@ func testConfig(upstreams map[string]config.UpstreamConfig) config.Config {
 	return config.Config{
 		Server: config.ServerConfig{Listen: "127.0.0.1:8787"},
 		Limits: config.LimitsConfig{
-			MaxRequestBytes:      1 << 20,
+			MaxRequestBytes:       1 << 20,
 			MaxConcurrent:         8,
 			DialTimeout:           config.Duration(2 * time.Second),
 			ResponseHeaderTimeout: config.Duration(2 * time.Second),
@@ -325,7 +325,6 @@ func TestConcurrencyLimit(t *testing.T) {
 		t.Fatal("first request did not finish")
 	}
 }
-
 
 type recordingResponseWriter struct {
 	header   http.Header
