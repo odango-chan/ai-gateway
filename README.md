@@ -97,6 +97,10 @@ curl http://127.0.0.1:8787/opencode-go/openai/v1/chat/completions \
 
 The gateway does not implement a model API. The caller is responsible for constructing requests and interpreting responses according to the selected upstream's API.
 
+## Architecture
+
+See the [architecture overview](docs/architecture.md) for the local and trusted internal-network deployment model, request flow, shared upstream credentials, and explicit non-goals. The diagram's Mermaid source is maintained in that document.
+
 ## Configuration
 
 See the [configuration guide](docs/configuration.md) for all settings, environment-variable expansion, route behavior, and remote-listener requirements.
