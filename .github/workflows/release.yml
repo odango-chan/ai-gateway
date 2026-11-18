@@ -3,6 +3,16 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to create (e.g. v0.1.0)"
+        required: true
+        type: string
+      source_sha:
+        description: "Full 40-character main commit SHA to release"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -13,10 +23,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_sha || github.ref }}
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25.x"
           cache: true
+      - name: Validate manual release target
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid release version"; exit 1; }
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "A full commit SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA" || { echo "Checkout differs from source SHA"; exit 1; }
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/main || { echo "Source is not an ancestor of main"; exit 1; }
+          if git ls-remote --tags origin "refs/tags/$RELEASE_VERSION" | grep -q .; then
+            echo "Release tag already exists; refusing to retarget it"
+            exit 1
+          fi
+          if gh release view "$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists"
+            exit 1
+          fi
       - run: go test ./...
       - run: go vet ./...
 
@@ -36,6 +70,9 @@ jobs:
           - { goos: darwin, goarch: arm64, ext: "" }
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_sha || github.ref }}
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25.x"
@@ -72,6 +109,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_sha || github.ref }}
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -84,4 +124,17 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            test "$(git rev-parse HEAD)" = "$SOURCE_SHA" || { echo "Source revision mismatch"; exit 1; }
+            if git ls-remote --tags origin "refs/tags/$RELEASE_VERSION" | grep -q .; then
+              echo "Release tag already exists; refusing duplicate publication"
+              exit 1
+            fi
+            gh release create "$RELEASE_VERSION" dist/* --repo "$GITHUB_REPOSITORY" --title "$RELEASE_VERSION" --target "$SOURCE_SHA" --generate-notes
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --verify-tag --generate-notes
+          fi
