@@ -38,9 +38,27 @@ Each upstream supports:
 | `base_url` | yes | Absolute HTTP or HTTPS URL. It may include a path prefix, but not credentials, query parameters, or a fragment. |
 | `headers` | no | Static headers to add or replace on requests sent to this upstream. Values support environment-variable expansion. |
 
-For a request to `/opencode-go/v1/chat/completions?stream=true`, with a base URL of `https://example.test/inference/openai`, the gateway forwards to `https://example.test/inference/openai/v1/chat/completions?stream=true`.
+For a request to `/opencode-go/openai/v1/chat/completions?stream=true`, with a base URL of `https://opencode.ai/inference/go`, the gateway forwards to `https://opencode.ai/inference/go/openai/v1/chat/completions?stream=true`.
 
 The route label is not forwarded as part of the path. The HTTP method, query string, request body, and normal end-to-end headers are preserved. Standard hop-by-hop headers are handled by Go's reverse proxy implementation.
+
+## OpenCode Go example
+
+OpenCode Go exposes the model catalog and model APIs under different path prefixes. Keep the base URL at `https://opencode.ai/inference/go` and include the API family in the request path:
+
+- Model catalog: `/opencode-go/v1/models` → `/inference/go/v1/models`.
+- OpenAI Chat Completions: `/opencode-go/openai/v1/chat/completions` → `/inference/go/openai/v1/chat/completions`.
+
+The configured Authorization header supplies the OpenCode Go API key. Inference requests must also include a stable `X-Opencode-Session` value for the conversation. The gateway forwards this header unchanged; it does not generate or manage conversation IDs.
+
+A real inference request can be sent with:
+
+```sh
+curl http://127.0.0.1:8787/opencode-go/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-Opencode-Session: ses_replace-with-a-stable-session-id" \
+  -d '{"model":"YOUR_MODEL_ID","messages":[{"role":"user","content":"Say hello"}]}'
+```
 
 ## Environment variables and secrets
 
@@ -54,7 +72,7 @@ upstreams:
       Authorization: "Bearer ${PROVIDER_API_KEY}"
 ```
 
-The variable is expanded when the configuration loads. If a referenced variable is missing, startup fails. Do not commit real keys or put them in the example file.
+The variable is expanded when the configuration loads. If a referenced variable is missing or empty, startup fails. Do not commit real keys or put them in the example file.
 
 The `Proxy-Authorization` header is always removed. If an upstream config defines `Authorization`, that configured value replaces the caller's header. Otherwise, the caller's `Authorization` header is forwarded unchanged. Other configured headers replace incoming headers with the same name.
 
