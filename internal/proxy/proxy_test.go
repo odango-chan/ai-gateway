@@ -217,6 +217,10 @@ func TestSSEIsForwardedWithoutBuffering(t *testing.T) {
 	if line != "data: first\n" {
 		t.Fatalf("first event was not streamed promptly: %q", line)
 	}
+	separator, err := reader.ReadString('\n')
+	if err != nil || separator != "\n" {
+		t.Fatalf("first event separator mismatch: %q, %v", separator, err)
+	}
 	close(release)
 	second, err := reader.ReadString('\n')
 	if err != nil {
