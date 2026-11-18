@@ -325,3 +325,40 @@ func TestConcurrencyLimit(t *testing.T) {
 		t.Fatal("first request did not finish")
 	}
 }
+
+
+type recordingResponseWriter struct {
+	header   http.Header
+	statuses []int
+	body     strings.Builder
+}
+
+func (w *recordingResponseWriter) Header() http.Header {
+	return w.header
+}
+
+func (w *recordingResponseWriter) WriteHeader(status int) {
+	w.statuses = append(w.statuses, status)
+}
+
+func (w *recordingResponseWriter) Write(data []byte) (int, error) {
+	return w.body.Write(data)
+}
+
+func TestStatusWriterForwardsInformationalResponseBeforeFinalStatus(t *testing.T) {
+	underlying := &recordingResponseWriter{header: make(http.Header)}
+	writer := &statusWriter{ResponseWriter: underlying}
+
+	writer.WriteHeader(http.StatusEarlyHints)
+	writer.WriteHeader(http.StatusCreated)
+
+	if len(underlying.statuses) != 2 {
+		t.Fatalf("expected informational and final status, got %v", underlying.statuses)
+	}
+	if underlying.statuses[0] != http.StatusEarlyHints || underlying.statuses[1] != http.StatusCreated {
+		t.Fatalf("unexpected response statuses: %v", underlying.statuses)
+	}
+	if writer.status != http.StatusCreated {
+		t.Fatalf("final status was not recorded: %d", writer.status)
+	}
+}
