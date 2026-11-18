@@ -8,18 +8,18 @@ The repository does not publish a version automatically from `main`. A release i
 2. Choose a semantic version such as `v0.1.0`.
 3. Create and push the tag:
 
-§§§sh
+```sh
 git checkout main
 git pull --ff-only
 git tag -a v0.1.0 -m "Release v0.1.0"
 git push origin v0.1.0
-§§§
+```
 
-4. The Release workflow builds six CGO-free binaries:
+4. The Release workflow runs tests and vet, then builds six CGO-free binaries:
    - Linux amd64 and arm64
    - Windows amd64 and arm64
    - macOS amd64 and arm64
-5. The workflow packages the executable with the MIT license, English and Chinese READMEs, and example configuration. It generates `SHA256SUMS` and publishes a GitHub Release.
+5. The workflow packages each executable with the MIT license, English and Chinese READMEs, and example configuration. It generates `SHA256SUMS` and publishes a GitHub Release.
 
 ## Before tagging
 
