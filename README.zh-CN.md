@@ -100,7 +100,11 @@ Gateway 本身不实现模型 API。调用方负责按照目标上游的协议�
 
 ## 架构
 
-见[架构说明](docs/architecture.md)，了解本机与可信内网部署方式、请求流转、共享上游凭证及明确不包含的功能。架构图使用 Mermaid 编写，源码直接保存在该文档中。
+![AI Gateway 架构图](docs/architecture/ai-gateway.svg)
+
+AI Gateway 是一个 Go HTTP 进程，部署在客户端本机（Local），或部署在可信内网服务器上供多个客户端共享（Internal Network）。Provider API Key 只保存在 Gateway 主机并由服务端注入；远程客户端使用另一个共享的 `X-Gateway-Token`。
+
+[交互式 HTML](docs/architecture/ai-gateway.html) 需下载后用本地浏览器打开（GitHub 不会执行独立 HTML，本项目也不使用 GitHub Pages）。[Archify JSON 源码](docs/architecture/ai-gateway.architecture.json) 是架构图的可编辑源文件；部署方式、访问控制、请求流程和明确不包含的功能见[架构说明](docs/architecture.md)。
 
 ## 配置
 
