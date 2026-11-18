@@ -54,37 +54,42 @@ OpenCode Go inference requests require an `X-Opencode-Session` header. Send a st
 
 ## Quick start
 
-Requires Go 1.25 or later.
+### Run a prebuilt release
 
-1. Copy the example configuration:
+1. Download the archive for your operating system and CPU architecture from [GitHub Releases](https://github.com/odango-chan/ai-gateway/releases/latest).
+2. Extract the archive. It contains the Gateway executable, example configuration, documentation, and smoke-test script.
+3. Copy the example configuration and set the hosted-provider credential:
 
+   **Linux / macOS**
    ```sh
    cp configs/config.example.yaml config.yaml
-   ```
-
-2. Set the credential used by the hosted upstream:
-
-   ```sh
    export OPENCODE_GO_API_KEY="your-api-key"
+   ./ai-gateway -config config.yaml
    ```
 
-3. Start the gateway:
-
-   ```sh
-   go run ./cmd/ai-gateway -config config.yaml
+   **Windows PowerShell**
+   ```powershell
+   Copy-Item configs/config.example.yaml config.yaml
+   $env:OPENCODE_GO_API_KEY = "your-api-key"
+   .\ai-gateway.exe -config config.yaml
    ```
 
-4. Check the health endpoint:
+4. Check the health endpoint at `http://127.0.0.1:8787/healthz`.
+5. List available OpenCode Go models at `http://127.0.0.1:8787/opencode-go/v1/models`.
 
-   ```sh
-   curl http://127.0.0.1:8787/healthz
-   ```
+The example configuration includes both OpenCode Go and a self-hosted `local-qwen` endpoint. If you only use self-hosted models, remove or comment out the `opencode-go` entry so startup does not require `OPENCODE_GO_API_KEY`.
 
-5. List available OpenCode Go models:
+### Build from source
 
-   ```sh
-   curl http://127.0.0.1:8787/opencode-go/v1/models
-   ```
+Building from source requires Go 1.25 or later:
+
+```sh
+git clone https://github.com/odango-chan/ai-gateway.git
+cd ai-gateway
+cp configs/config.example.yaml config.yaml
+export OPENCODE_GO_API_KEY="your-api-key"
+go run ./cmd/ai-gateway -config config.yaml
+```
 
 To send an inference request, use the OpenAI-compatible route and provide a model ID returned by the model catalog:
 
