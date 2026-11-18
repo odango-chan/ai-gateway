@@ -95,3 +95,14 @@ curl http://127.0.0.1:8787/local-qwen/v1/models
 ```
 
 The example local-qwen target assumes a compatible service is listening on `127.0.0.1:8000`.
+
+
+## Live OpenCode Go smoke test
+
+Start the gateway with `OPENCODE_GO_API_KEY` available in its environment. Then choose a model ID returned by `/opencode-go/v1/models` and run:
+
+```sh
+OPENCODE_GO_TEST_MODEL="YOUR_MODEL_ID" ./scripts/smoke-opencode-go.sh
+```
+
+The script checks gateway health, confirms the selected model is listed by OpenCode Go, and sends one non-streaming inference request through the gateway. It requires `curl` and `jq`. The inference request may incur provider usage or billing. Set `GATEWAY_URL` for a non-default gateway address, `GATEWAY_TOKEN` when the gateway uses shared-token authentication, or `OPENCODE_GO_SESSION_ID` to provide a stable session ID.
