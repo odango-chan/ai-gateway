@@ -19,7 +19,7 @@ git push origin v0.1.0
    - Linux amd64 and arm64
    - Windows amd64 and arm64
    - macOS amd64 and arm64
-5. The workflow packages each executable with the MIT license, English and Chinese READMEs, and example configuration. It generates `SHA256SUMS` and publishes a GitHub Release.
+5. Each platform archive contains the executable, MIT license, English and Chinese READMEs, the example configuration under `configs/`, the complete `docs/` tree (including the architecture JSON, SVG preview, and standalone HTML), `SECURITY.md`, `CONTRIBUTING.md`, and the OpenCode Go smoke-test script under `scripts/`. It generates `SHA256SUMS` for all six archives and publishes a GitHub Release.
 
 ## Before tagging
 
