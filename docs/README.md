@@ -1,5 +1,6 @@
 # Documentation
 
+- [Architecture](architecture.md): local and trusted-LAN deployment model, request flow, shared credentials, and explicit non-goals.
 - [Configuration](configuration.md): server settings, route labels, headers, environment variables, and examples.
 - [Security policy](../SECURITY.md): deployment boundaries and vulnerability reporting.
 - [Contributing](../CONTRIBUTING.md): development and pull request checks.
