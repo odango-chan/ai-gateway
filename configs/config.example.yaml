@@ -1,0 +1,26 @@
+server:
+  listen: "127.0.0.1:8787"
+  # Remote listening is disabled by default.
+  # To expose the gateway on a private network, set allow_remote to true
+  # and provide a non-empty environment variable through access_token_env.
+  allow_remote: false
+  # access_token_env: GATEWAY_SHARED_TOKEN
+
+limits:
+  max_request_bytes: 16777216
+  max_concurrent: 16
+  dial_timeout: 10s
+  response_header_timeout: 120s
+  idle_conn_timeout: 90s
+  shutdown_timeout: 10s
+
+upstreams:
+  opencode-go:
+    # /opencode-go/openai/v1/chat/completions -> /inference/go/openai/v1/chat/completions
+    # /opencode-go/v1/models -> /inference/go/v1/models
+    base_url: "https://opencode.ai/inference/go"
+    headers:
+      Authorization: "Bearer ${OPENCODE_GO_API_KEY}"
+
+  local-qwen:
+    base_url: "http://127.0.0.1:8000"

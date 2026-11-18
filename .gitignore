@@ -1,0 +1,7 @@
+/ai-gateway
+/dist/
+/coverage.out
+/config.yaml
+*.log
+.DS_Store
+Thumbs.db
