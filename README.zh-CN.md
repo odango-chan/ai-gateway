@@ -55,37 +55,42 @@ OpenCode Go 的推理请求要求提供 `X-Opencode-Session` 请求头。每个�
 
 ## 快速开始
 
-需要 Go 1.25 或更高版本。
+### 运行预编译版本
 
-1. 复制示例配置：
+1. 从 [GitHub Releases](https://github.com/odango-chan/ai-gateway/releases/latest) 下载与你的操作系统和 CPU 架构匹配的压缩包。
+2. 解压。压缩包包含 Gateway 可执行文件、示例配置、文档和连通性测试脚本。
+3. 复制示例配置，并设置托管 Provider 所需的凭证：
 
+   **Linux / macOS**
    ```sh
    cp configs/config.example.yaml config.yaml
-   ```
-
-2. 设置托管上游所需的密钥：
-
-   ```sh
    export OPENCODE_GO_API_KEY="your-api-key"
+   ./ai-gateway -config config.yaml
    ```
 
-3. 启动 Gateway：
-
-   ```sh
-   go run ./cmd/ai-gateway -config config.yaml
+   **Windows PowerShell**
+   ```powershell
+   Copy-Item configs/config.example.yaml config.yaml
+   $env:OPENCODE_GO_API_KEY = "your-api-key"
+   .\ai-gateway.exe -config config.yaml
    ```
 
-4. 检查健康状态：
+4. 访问 `http://127.0.0.1:8787/healthz` 检查服务状态。
+5. 访问 `http://127.0.0.1:8787/opencode-go/v1/models` 查看 OpenCode Go 可用模型。
 
-   ```sh
-   curl http://127.0.0.1:8787/healthz
-   ```
+示例配置同时包含 OpenCode Go 和自建的 `local-qwen` 服务。如果只使用自建模型，请删除或注释 `opencode-go` 配置项，否则启动时会要求提供 `OPENCODE_GO_API_KEY`。
 
-5. 查看 OpenCode Go 可用模型：
+### 从源码构建
 
-   ```sh
-   curl http://127.0.0.1:8787/opencode-go/v1/models
-   ```
+从源码构建需要 Go 1.25 或更高版本：
+
+```sh
+git clone https://github.com/odango-chan/ai-gateway.git
+cd ai-gateway
+cp configs/config.example.yaml config.yaml
+export OPENCODE_GO_API_KEY="your-api-key"
+go run ./cmd/ai-gateway -config config.yaml
+```
 
 调用模型时，使用 OpenAI 兼容路由，并填写模型列表返回的 Model ID：
 
