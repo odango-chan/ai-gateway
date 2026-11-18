@@ -144,7 +144,6 @@ func TestRejectsMissingEnvironmentVariable(t *testing.T) {
 	}
 }
 
-
 func TestExampleConfigurationLoads(t *testing.T) {
 	t.Setenv("OPENCODE_GO_API_KEY", "test-only-key")
 	path := filepath.Join("..", "..", "configs", "config.example.yaml")

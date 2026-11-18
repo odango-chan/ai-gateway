@@ -54,7 +54,7 @@ type ServerConfig struct {
 }
 
 type LimitsConfig struct {
-	MaxRequestBytes      int64    `yaml:"max_request_bytes"`
+	MaxRequestBytes       int64    `yaml:"max_request_bytes"`
 	MaxConcurrent         int      `yaml:"max_concurrent"`
 	DialTimeout           Duration `yaml:"dial_timeout"`
 	ResponseHeaderTimeout Duration `yaml:"response_header_timeout"`
@@ -165,10 +165,10 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("limits.max_concurrent must be greater than zero")
 	}
 	for name, value := range map[string]Duration{
-		"dial_timeout": cfg.Limits.DialTimeout,
+		"dial_timeout":            cfg.Limits.DialTimeout,
 		"response_header_timeout": cfg.Limits.ResponseHeaderTimeout,
-		"idle_conn_timeout": cfg.Limits.IdleConnTimeout,
-		"shutdown_timeout": cfg.Limits.ShutdownTimeout,
+		"idle_conn_timeout":       cfg.Limits.IdleConnTimeout,
+		"shutdown_timeout":        cfg.Limits.ShutdownTimeout,
 	} {
 		if value.Value() <= 0 {
 			return fmt.Errorf("limits.%s must be greater than zero", name)
