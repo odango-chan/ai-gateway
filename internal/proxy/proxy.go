@@ -205,6 +205,13 @@ type statusWriter struct {
 }
 
 func (w *statusWriter) WriteHeader(status int) {
+	// Informational responses (except 101 Switching Protocols) do not
+	// commit the final response status. ReverseProxy may forward 103 Early
+	// Hints before the upstream's final status.
+	if status >= 100 && status < 200 && status != http.StatusSwitchingProtocols {
+		w.ResponseWriter.WriteHeader(status)
+		return
+	}
 	if w.status != 0 {
 		return
 	}
