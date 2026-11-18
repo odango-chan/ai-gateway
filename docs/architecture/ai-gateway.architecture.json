@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AI Gateway · 本机与内网共享的 Go 网关",
+    "locale": "zh-CN",
+    "output": "docs/architecture/ai-gateway.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:odango-chan/ai-gateway.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "b0e298a216f5aaaa5691fa1ba51dc531e902d879"
+    },
+    "views": [
+      {
+        "id": "local-deployment",
+        "label": "本机部署",
+        "focus": ["studio", "server", "router", "access", "proxy", "injector", "config", "env", "self"],
+        "note": "客户端与 Gateway 同机运行，默认只监听 127.0.0.1:8787。"
+      },
+      {
+        "id": "internal-shared",
+        "label": "内网共享",
+        "focus": ["other", "studio", "server", "access", "injector", "hosted"],
+        "note": "多个客户端共用一台内网 Gateway 与同一个 Provider 账号。"
+      },
+      {
+        "id": "credential-boundary",
+        "label": "凭证边界",
+        "focus": ["env", "config", "injector", "hosted", "access"],
+        "note": "Provider 凭证只注入上游请求；X-Gateway-Token 只用于客户端到 Gateway。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "studio",
+      "type": "external",
+      "label": "Skill Studio",
+      "sublabel": "AI 客户端",
+      "pos": [40, 265],
+      "size": [150, 70]
+    },
+    {
+      "id": "other",
+      "type": "external",
+      "label": "其他 AI 客户端",
+      "sublabel": "HTTP / OpenAI 兼容",
+      "pos": [40, 395],
+      "size": [150, 70]
+    },
+    {
+      "id": "env",
+      "type": "security",
+      "label": "主机环境变量",
+      "sublabel": "Provider Key · Access Token",
+      "tag": "仅存主机",
+      "pos": [230, 90],
+      "size": [170, 90],
+      "sources": [
+        { "path": "internal/config/config.go", "line": 140, "end_line": 155, "label": "expandEnvironment" },
+        { "path": "internal/config/config.go", "line": 193, "end_line": 199, "label": "access token env" }
+      ]
+    },
+    {
+      "id": "config",
+      "type": "backend",
+      "label": "静态上游配置",
+      "sublabel": "config.yaml · 启动加载",
+      "tag": "静态 YAML",
+      "pos": [470, 90],
+      "size": [200, 90],
+      "sources": [
+        { "path": "internal/config/config.go", "line": 70, "end_line": 98, "label": "load + validate" },
+        { "path": "internal/config/config.go", "line": 100, "end_line": 122, "label": "defaults" },
+        { "path": "configs/config.example.yaml", "line": 1, "end_line": 26, "label": "example config" }
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "HTTP Server",
+      "sublabel": "net/http · /healthz",
+      "tag": "127.0.0.1:8787",
+      "pos": [250, 300],
+      "size": [170, 80],
+      "sources": [
+        { "path": "cmd/ai-gateway/main.go", "line": 42, "end_line": 62, "label": "http.Server + listener" },
+        { "path": "cmd/ai-gateway/main.go", "line": 64, "end_line": 76, "label": "graceful shutdown" },
+        { "path": "internal/proxy/proxy.go", "line": 107, "end_line": 117, "label": "/healthz" }
+      ]
+    },
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "路由标签解析",
+      "sublabel": "/{label}/… → base_url",
+      "tag": "静态映射",
+      "pos": [490, 300],
+      "size": [160, 80],
+      "sources": [
+        { "path": "internal/proxy/proxy.go", "line": 166, "end_line": 200, "label": "routeURL" }
+      ]
+    },
+    {
+      "id": "access",
+      "type": "security",
+      "label": "访问与限额",
+      "sublabel": "令牌 · 16 MiB · 16 并发",
+      "tag": "共享密钥",
+      "pos": [730, 300],
+      "size": [170, 80],
+      "sources": [
+        { "path": "internal/proxy/proxy.go", "line": 125, "end_line": 144, "label": "token, size, concurrency" },
+        { "path": "internal/config/config.go", "line": 186, "end_line": 199, "label": "remote listener requirements" },
+        { "path": "internal/config/config.go", "line": 104, "end_line": 121, "label": "limit defaults" }
+      ]
+    },
+    {
+      "id": "proxy",
+      "type": "backend",
+      "label": "HTTP 请求转发",
+      "sublabel": "SSE 流式响应",
+      "tag": "httputil",
+      "pos": [975, 470],
+      "size": [160, 80],
+      "sources": [
+        { "path": "internal/proxy/proxy.go", "line": 37, "end_line": 47, "label": "transport timeouts" },
+        { "path": "internal/proxy/proxy.go", "line": 146, "end_line": 164, "label": "forward + log" },
+        { "path": "internal/proxy/proxy.go", "line": 202, "end_line": 240, "label": "SSE flush writer" }
+      ]
+    },
+    {
+      "id": "injector",
+      "type": "security",
+      "label": "请求头与凭证注入",
+      "sublabel": "Authorization · ${ENV}",
+      "tag": "Rewrite",
+      "pos": [970, 300],
+      "size": [170, 80],
+      "sources": [
+        { "path": "internal/proxy/proxy.go", "line": 68, "end_line": 83, "label": "Rewrite headers" },
+        { "path": "internal/config/config.go", "line": 124, "end_line": 138, "label": "${ENV} expansion" },
+        { "path": "internal/config/config.go", "line": 239, "end_line": 247, "label": "restricted headers" }
+      ]
+    },
+    {
+      "id": "hosted",
+      "type": "cloud",
+      "label": "OpenCode Go",
+      "sublabel": "opencode.ai/inference/go",
+      "tag": "共享账号",
+      "pos": [760, 650],
+      "size": [180, 70],
+      "sources": [
+        { "path": "configs/config.example.yaml", "line": 18, "end_line": 23, "label": "opencode-go upstream" }
+      ]
+    },
+    {
+      "id": "self",
+      "type": "backend",
+      "label": "自建模型服务",
+      "sublabel": "local-qwen :8000",
+      "tag": "自建服务",
+      "pos": [1040, 650],
+      "size": [180, 70],
+      "sources": [
+        { "path": "configs/config.example.yaml", "line": 25, "end_line": 26, "label": "local-qwen upstream" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "本机或可信内网",
+      "wraps": ["studio", "other", "env", "config", "server", "router", "access", "proxy", "injector"],
+      "pad": 20
+    },
+    {
+      "kind": "security-group",
+      "label": "Gateway 主机 · 凭证边界",
+      "wraps": ["env", "config", "server", "router", "access", "proxy", "injector"],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    { "id": "studio-http", "from": "studio", "to": "server", "label": "HTTP", "variant": "emphasis" },
+    { "id": "other-http", "from": "other", "to": "server", "label": "HTTP" },
+    { "id": "env-expand", "from": "env", "to": "config", "label": "${ENV}", "variant": "security" },
+    { "id": "config-upstreams", "from": "config", "to": "router", "label": "上游表" },
+    {
+      "id": "config-token",
+      "from": "config",
+      "to": "access",
+      "label": "令牌 · 限额"
+    },
+    {
+      "id": "config-headers",
+      "from": "config",
+      "to": "injector",
+      "label": "请求头"
+    },
+    { "id": "server-route", "from": "server", "to": "router", "label": "标签" },
+    { "id": "router-access", "from": "router", "to": "access", "label": "命中上游" },
+    { "id": "access-injector", "from": "access", "to": "injector", "label": "放行" },
+    { "id": "injector-proxy", "from": "injector", "to": "proxy", "label": "转发", "fromSide": "bottom", "toSide": "top" },
+    { "id": "proxy-hosted", "from": "proxy", "to": "hosted", "label": "HTTPS · auth", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "proxy-self", "from": "proxy", "to": "self", "label": "HTTP", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "共享账号边界",
+      "items": [
+        "Provider API Key 只在 Gateway 主机上通过环境变量展开。",
+        "客户端不保存 Provider Key，所有客户端共享同一上游账号额度。",
+        "Gateway 注入 Authorization，并移除 X-Gateway-Token 与 Proxy-Authorization。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "两种凭证",
+      "items": [
+        "Provider API Key：Gateway 访问上游模型服务的凭证。",
+        "Gateway Access Token：远程客户端访问内网 Gateway 的共享令牌。",
+        "非回环监听必须同时启用 allow_remote 与 access_token_env；它不是用户认证系统。"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "请求与流式响应",
+      "items": [
+        "请求路径为 /{label}/{upstream-path}，标签来自静态配置，剩余路径拼接到 base_url。",
+        "请求体上限 16 MiB，最多 16 个并发代理请求，超限分别返回 413 与 503。",
+        "SSE 响应由 ReverseProxy 边转发边 Flush，不缓冲完整响应。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "运行边界",
+      "items": [
+        "默认监听 127.0.0.1:8787；GET /healthz 不经过路由与令牌校验。",
+        "SIGTERM 触发优雅关闭，默认 10 秒超时。",
+        "没有数据库、用户体系、OAuth、RBAC、多租户、重试、负载均衡或协议转换。"
+      ]
+    }
+  ]
+}

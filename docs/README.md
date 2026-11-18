@@ -1,6 +1,9 @@
 # Documentation
 
-- [Architecture](architecture.md): local and trusted-LAN deployment model, request flow, shared credentials, and explicit non-goals.
+- [Architecture](architecture.md): Archify architecture diagram, local and internal-network deployment, shared upstream credentials, access control, and request flow.
+  - [Interactive HTML](architecture/ai-gateway.html) (download and open locally; GitHub does not run standalone pages)
+  - [Archify JSON source](architecture/ai-gateway.architecture.json)
+  - [SVG preview](architecture/ai-gateway.svg)
 - [Configuration](configuration.md): server settings, route labels, headers, environment variables, and examples.
 - [Security policy](../SECURITY.md): deployment boundaries and vulnerability reporting.
 - [Contributing](../CONTRIBUTING.md): development and pull request checks.

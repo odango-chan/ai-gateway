@@ -99,7 +99,11 @@ The gateway does not implement a model API. The caller is responsible for constr
 
 ## Architecture
 
-See the [architecture overview](docs/architecture.md) for the local and trusted internal-network deployment model, request flow, shared upstream credentials, and explicit non-goals. The diagram's Mermaid source is maintained in that document.
+![AI Gateway architecture](docs/architecture/ai-gateway.svg)
+
+AI Gateway is one Go HTTP process deployed either on the client machine (Local) or on a trusted internal-network server shared by several clients. Provider API keys stay on the Gateway host and are injected server-side; remote clients use a separate shared `X-Gateway-Token`.
+
+Open the [interactive HTML](docs/architecture/ai-gateway.html) by downloading it and opening it in a local browser (GitHub does not execute standalone HTML, and this project does not use GitHub Pages). The [Archify JSON source](docs/architecture/ai-gateway.architecture.json) is the editable diagram source, and the [architecture overview](docs/architecture.md) covers deployment, access control, request flow, and explicit non-goals.
 
 ## Configuration
 
