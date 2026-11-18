@@ -17,7 +17,7 @@ fi
 curl "${curl_args[@]}" "$gateway_url/healthz" >/dev/null
 echo "Gateway health: PASS"
 
-models="$(curl "${curl_args[@]}" "$gateway_url/opencode-go/v1/models")"
+models="$(curl "${curl_args[@]}" -H "X-Opencode-Session: $session_id" "$gateway_url/opencode-go/v1/models")"
 if ! printf '%s' "$models" | jq -e --arg id "$model" 'any(.data[]?; .id == $id)' >/dev/null; then
   echo "Model '$model' was not found in the OpenCode Go model catalog." >&2
   exit 1
