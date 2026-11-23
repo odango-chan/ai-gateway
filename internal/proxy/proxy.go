@@ -22,6 +22,7 @@ type Handler struct {
 	maxRequestBytes int64
 	maxConcurrent   chan struct{}
 	accessToken     string
+	corsOrigins     map[string]struct{}
 	logger          *slog.Logger
 	transport       *http.Transport
 }
@@ -51,8 +52,13 @@ func New(cfg config.Config, logger *slog.Logger) (*Handler, error) {
 		maxRequestBytes: cfg.Limits.MaxRequestBytes,
 		maxConcurrent:   make(chan struct{}, cfg.Limits.MaxConcurrent),
 		accessToken:     cfg.AccessToken,
+		corsOrigins:     make(map[string]struct{}, len(cfg.Server.CORSAllowedOrigins)),
 		logger:          logger,
 		transport:       transport,
+	}
+
+	for _, origin := range cfg.Server.CORSAllowedOrigins {
+		handler.corsOrigins[origin] = struct{}{}
 	}
 
 	for label, upstream := range cfg.Upstreams {
@@ -68,6 +74,22 @@ func New(cfg config.Config, logger *slog.Logger) (*Handler, error) {
 		_, replaceAuthorization := headers[http.CanonicalHeaderKey("Authorization")]
 		reverseProxy := &httputil.ReverseProxy{
 			Transport: transport,
+			// Upstreams are never allowed to grant browser access to this Gateway.
+			// Gateway's exact-origin policy is authoritative even when disabled.
+			ModifyResponse: func(response *http.Response) error {
+				for _, name := range []string{
+					"Access-Control-Allow-Origin",
+					"Access-Control-Allow-Methods",
+					"Access-Control-Allow-Headers",
+					"Access-Control-Allow-Credentials",
+					"Access-Control-Allow-Private-Network",
+					"Access-Control-Expose-Headers",
+					"Access-Control-Max-Age",
+				} {
+					response.Header.Del(name)
+				}
+				return nil
+			},
 			Rewrite: func(request *httputil.ProxyRequest) {
 				request.SetURL(target)
 				if replaceAuthorization {
@@ -104,6 +126,20 @@ func (h *Handler) CloseIdleConnections() {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if len(h.corsOrigins) > 0 {
+		w.Header().Add("Vary", "Origin")
+		if origin := r.Header.Get("Origin"); origin != "" {
+			if _, ok := h.corsOrigins[origin]; !ok || len(r.Header.Values("Origin")) != 1 {
+				http.Error(w, "origin not allowed", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+				h.serveCORSPreflight(w, r)
+				return
+			}
+		}
+	}
 	if r.URL.Path == "/healthz" {
 		if r.Method != http.MethodGet {
 			w.Header().Set("Allow", http.MethodGet)
@@ -161,6 +197,47 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"status", recorder.status,
 		"duration_ms", time.Since(started).Milliseconds(),
 	)
+}
+
+// serveCORSPreflight handles only known Gateway endpoints. Browser preflight
+// has no access token; the subsequent actual request must still authenticate.
+func (h *Handler) serveCORSPreflight(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Vary", "Access-Control-Request-Method")
+	w.Header().Add("Vary", "Access-Control-Request-Headers")
+	w.Header().Add("Vary", "Access-Control-Request-Private-Network")
+	if r.URL.Path != "/healthz" {
+		if _, _, ok := routeURL(r.URL, h.proxies); !ok {
+			http.NotFound(w, r)
+			return
+		}
+	}
+	method := r.Header.Get("Access-Control-Request-Method")
+	if method != http.MethodGet && method != http.MethodPost && method != http.MethodOptions {
+		http.Error(w, "CORS method not allowed", http.StatusForbidden)
+		return
+	}
+	requestedHeaders := r.Header.Get("Access-Control-Request-Headers")
+	if requestedHeaders != "" {
+		for _, rawHeader := range strings.Split(requestedHeaders, ",") {
+			switch strings.ToLower(strings.TrimSpace(rawHeader)) {
+			case "content-type", "x-opencode-session", "x-gateway-token":
+			default:
+				http.Error(w, "CORS header not allowed", http.StatusForbidden)
+				return
+			}
+		}
+	}
+	privateNetwork := r.Header.Get("Access-Control-Request-Private-Network")
+	if privateNetwork != "" && privateNetwork != "true" {
+		http.Error(w, "invalid private-network preflight", http.StatusForbidden)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Opencode-Session, X-Gateway-Token")
+	if privateNetwork == "true" {
+		w.Header().Set("Access-Control-Allow-Private-Network", "true")
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func routeURL(in *url.URL, proxies map[string]*httputil.ReverseProxy) (string, *url.URL, bool) {
