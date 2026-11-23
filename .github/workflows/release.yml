@@ -89,8 +89,13 @@ jobs:
           go build -trimpath -ldflags="-s -w" -o "staging/ai-gateway${BINARY_EXT}" ./cmd/ai-gateway
           cp LICENSE README.md README.zh-CN.md SECURITY.md CONTRIBUTING.md staging/
           mkdir -p staging/configs
-          cp configs/config.example.yaml staging/configs/config.example.yaml
+          cp configs/*.example.yaml staging/configs/
           cp -R docs scripts staging/
+          test -s staging/configs/config.example.yaml
+          test -s staging/configs/config.studio-pages.example.yaml
+          test -s staging/scripts/start-studio-pages.sh
+          test -s staging/scripts/start-studio-pages.ps1
+          test -s staging/docs/browser-studio.md
           if [ "$GOOS" = "windows" ]; then
             (cd staging && zip -q -r "../dist/ai-gateway-${GOOS}-${GOARCH}.zip" .)
           else
