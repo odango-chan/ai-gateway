@@ -141,7 +141,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 - Upstream destinations are static configuration. Requests cannot supply arbitrary target URLs.
 - The gateway does not parse or modify JSON, prompts, model names, or provider-specific payloads.
 - The gateway does not retry requests, balance traffic between replicas, or translate protocols.
-- CORS is not enabled by default. Use a same-origin host integration or configure an appropriate trusted front proxy.
+- Browser CORS is **disabled by default** and rejects Origin-bearing requests. To support GitHub Pages Studio with a **user-owned local or trusted private Gateway**, configure the exact `server.cors_allowed_origins` allowlist (no wildcards). See [Browser-hosted Skill Studio](docs/browser-studio.md). CORS does not authenticate users or safely expose shared API keys to public Pages visitors.
 - The built-in HTTP server does not terminate TLS. Use a trusted reverse proxy for HTTPS when needed.
 
 ## Releases
