@@ -113,7 +113,7 @@ try {
     '      Authorization: "Bearer ci-synthetic-only"',
     ""
   ].join("\n"), { mode: 0o600 });
-  gateway = spawn(resolve("ai-gateway.exe"), ["-config", configPath], {
+  gateway = spawn(resolve(process.env.GATEWAY_BINARY_PATH ?? "ai-gateway.exe"), ["-config", configPath], {
     windowsHide: true,
     stdio: ["ignore", "ignore", "pipe"]
   });
