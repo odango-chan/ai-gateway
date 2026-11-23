@@ -79,6 +79,33 @@ OpenCode Go inference requests require an `X-Opencode-Session` header. Send a st
 
 The example configuration includes both OpenCode Go and a self-hosted `local-qwen` endpoint. If you only use self-hosted models, remove or comment out the `opencode-go` entry so startup does not require `OPENCODE_GO_API_KEY`.
 
+### GitHub Pages Skill Studio (local Gateway profile)
+
+For Skill Studio deployed on GitHub Pages, the release includes a **ready-to-use,
+loopback-only** `configs/config.studio-pages.example.yaml`. It preconfigures
+the Pages origin, OpenCode Go route and conservative limits. **Only the
+OpenCode Go Provider API key is needed**, entered securely when launching:
+
+```sh
+# Linux/WSL/macOS: run from the extracted release directory
+bash scripts/start-studio-pages.sh
+```
+
+```powershell
+# Windows PowerShell: run from the extracted Windows release directory
+.\\scripts\\start-studio-pages.ps1
+```
+
+The Studio Gateway URL is `http://127.0.0.1:8787/opencode-go/openai`.
+Its model setting defaults to `deepseek-v4.1-flash` in Studio PR #208,
+subject to the actual upstream model catalog. The local launcher never saves
+the key. It does not require a Gateway shared access token because the
+Gateway listens on `127.0.0.1`, not on a remote interface.
+
+See [browser/WSL integration and security requirements](docs/browser-studio.md).
+A publicly shared paid-model Gateway remains **out of scope**: CORS is not
+authentication, and static Pages cannot safely hold the Provider API key.
+
 ### Build from source
 
 Building from source requires Go 1.25 or later:
