@@ -57,6 +57,36 @@ jobs:
           test ! -e staging/.env
           test ! -e staging/config.yaml
 
+  studio-pages-preview:
+    name: Build WSL/Linux Studio Pages preview archive
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+      - name: Assemble Linux amd64 archive for browser acceptance
+        run: |
+          set -euo pipefail
+          mkdir -p staging/configs dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o staging/ai-gateway ./cmd/ai-gateway
+          cp LICENSE README.md README.zh-CN.md SECURITY.md CONTRIBUTING.md staging/
+          cp configs/*.example.yaml staging/configs/
+          cp -R docs scripts staging/
+          test -s staging/configs/config.studio-pages.example.yaml
+          test -s staging/scripts/start-studio-pages.sh
+          tar -C staging -czf dist/ai-gateway-linux-amd64-studio-preview.tar.gz .
+          tar -tzf dist/ai-gateway-linux-amd64-studio-preview.tar.gz | grep -Fx './ai-gateway'
+          tar -tzf dist/ai-gateway-linux-amd64-studio-preview.tar.gz | grep -Fx './configs/config.studio-pages.example.yaml'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-gateway-linux-amd64-studio-preview
+          path: dist/ai-gateway-linux-amd64-studio-preview.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
   cross-build:
     name: Cross-build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
