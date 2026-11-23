@@ -128,16 +128,23 @@ func (h *Handler) CloseIdleConnections() {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(h.corsOrigins) > 0 {
 		w.Header().Add("Vary", "Origin")
-		if origin := r.Header.Get("Origin"); origin != "" {
-			if _, ok := h.corsOrigins[origin]; !ok || len(r.Header.Values("Origin")) != 1 {
-				http.Error(w, "origin not allowed", http.StatusForbidden)
-				return
-			}
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
-				h.serveCORSPreflight(w, r)
-				return
-			}
+	}
+	// A disabled CORS policy rejects browser-origin traffic rather than merely
+	// hiding the response: a cross-site form/simple POST could still spend tokens.
+	if values := r.Header.Values("Origin"); len(values) > 0 {
+		origin := r.Header.Get("Origin")
+		if len(values) != 1 || origin == "" {
+			http.Error(w, "origin not allowed", http.StatusForbidden)
+			return
+		}
+		if _, ok := h.corsOrigins[origin]; !ok {
+			http.Error(w, "origin not allowed", http.StatusForbidden)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+			h.serveCORSPreflight(w, r)
+			return
 		}
 	}
 	if r.URL.Path == "/healthz" {
