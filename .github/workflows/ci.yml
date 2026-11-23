@@ -29,6 +29,14 @@ jobs:
         run: go test ./...
       - name: Vet
         run: go vet ./...
+      - name: Validate Windows launcher syntax
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/start-studio-pages.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { throw ($errors -join '; ') }
 
   cross-build:
     name: Cross-build (${{ matrix.goos }}/${{ matrix.goarch }})
@@ -66,5 +74,5 @@ jobs:
           go-version: "1.25.x"
           cache: true
       - run: go test -race ./...
-      - name: Check smoke script syntax
-        run: bash -n scripts/smoke-opencode-go.sh
+      - name: Check smoke and launch script syntax
+        run: bash -n scripts/smoke-opencode-go.sh scripts/start-studio-pages.sh
