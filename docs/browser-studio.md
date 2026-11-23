@@ -61,6 +61,28 @@ This is a local opt-in configuration, not an automatic public Gateway for every
 visitor. If the browser is on Windows and the Gateway is in WSL, verify that
 Windows browser loopback reaches WSL forwarding before debugging CORS.
 
+## Preview binary before the v0.2.0 release
+
+Until the browser transport is qualified and `v0.2.0` is published,
+the [Gateway PR #10 CI](https://github.com/odango-chan/ai-gateway/pull/10/checks)
+produces a short-lived **Linux amd64 Studio preview archive** as a GitHub
+Actions artifact. It contains the actual binary and the same public
+configs/scripts/docs intended for the release (no Go installation required).
+
+In GitHub Actions, open the latest green PR run, download
+`ai-gateway-linux-amd64-studio-preview` from **Artifacts**, extract the
+outer ZIP, then in WSL:
+
+```sh
+tar -xzf ai-gateway-linux-amd64-studio-preview.tar.gz
+bash scripts/start-studio-pages.sh
+```
+
+The preview artifact expires after seven days. It is **not** an official
+release and does not prove successful model inference. Windows users should
+use the published Windows executable after the official version is released,
+or build from source for development.
+
 ## Single-user local / WSL deployment
 
 1. Start Go Gateway on the workstation with an explicitly chosen upstream and
