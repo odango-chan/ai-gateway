@@ -11,10 +11,49 @@ Start with [the example configuration](../configs/config.example.yaml).
 | `server.listen` | `127.0.0.1:8787` | HTTP listen address. |
 | `server.allow_remote` | `false` | Explicitly permit a non-loopback listen address. |
 | `server.access_token_env` | unset | Environment variable containing the shared gateway token. Required for non-loopback listeners. |
+| `server.cors_allowed_origins` | `[]` | Optional exact browser origins; empty disables browser calls (not a wildcard). |
 
 When a shared token is configured, clients send it in `X-Gateway-Token`. The gateway checks it using a constant-time comparison and removes it before forwarding. This is a single shared secret, not a user or identity system.
 
 A non-loopback listener is rejected unless both `allow_remote: true` and `access_token_env` are configured. Use a firewall and a trusted TLS reverse proxy when accessing the service across a network.
+
+## GitHub Pages / browser CORS
+
+For browser-hosted Skill Studio, explicitly allow the complete **origin** of the
+deployed site, not the project subpath. For
+`https://odango-chan.github.io/ca-skill-studio-demo/`, the exact origin is
+`https://odango-chan.github.io`:
+
+```yaml
+server:
+  listen: "127.0.0.1:8787"
+  cors_allowed_origins:
+    - "https://odango-chan.github.io"
+```
+
+An empty allowlist rejects Origin-bearing browser requests (including simple
+POSTs), rather than forwarding a billable request and merely hiding its response.
+No-Origin CLI requests continue to work. Wildcards, `null`, path prefixes,
+partial host matches, credentials and origins with query/fragment are rejected.
+Allowed origins get `Access-Control-Allow-Origin` with the exact matched value
+and `Vary: Origin`. Permitted preflight headers are `Content-Type`,
+`X-Opencode-Session`, and `X-Gateway-Token`. Cookie credentials are never
+allowed. Private-network preflight is answered only for allowlisted origins.
+The browser still controls mixed-content, Local Network Access permissions,
+private-network reachability and HTTPS requirements; CORS cannot override them.
+
+**CORS is not authentication.** Do not inject a shared Gateway token or a
+provider API key into publicly downloadable GitHub Pages JavaScript, build
+artifacts or public configuration. Loopback use should keep the Gateway bound
+to the user's own machine. If using non-loopback access, require the existing
+`server.allow_remote` and secret `server.access_token_env` settings, firewall
+and TLS protection, and make the token available to authorized users out of
+band. A publicly accessible shared paid-provider service additionally needs
+server-side user identity, authorization, and usage limits, which this Gateway
+does not provide.
+
+See [Browser-hosted Skill Studio deployment](browser-studio.md) for acceptance
+steps and limitations.
 
 ## Limits
 
