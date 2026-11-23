@@ -213,3 +213,28 @@ upstreams:
 		t.Fatal("duplicate CORS origins must be rejected")
 	}
 }
+
+func TestStudioPagesExampleConfigurationLoads(t *testing.T) {
+	t.Setenv("OPENCODE_GO_API_KEY", "test-only-key")
+	path := filepath.Join("..", "..", "configs", "config.studio-pages.example.yaml")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Server.Listen != "127.0.0.1:8787" ||
+		cfg.Server.AllowRemote ||
+		cfg.AccessToken != "" {
+		t.Fatalf("Studio Pages example must be loopback-only without Gateway token: %+v", cfg.Server)
+	}
+	if len(cfg.Server.CORSAllowedOrigins) != 1 ||
+		cfg.Server.CORSAllowedOrigins[0] != "https://odango-chan.github.io" {
+		t.Fatalf("Studio Pages example has incorrect CORS origins: %v", cfg.Server.CORSAllowedOrigins)
+	}
+	if cfg.Limits.MaxConcurrent != 4 || cfg.Limits.MaxRequestBytes != 1048576 {
+		t.Fatal("Studio Pages example must retain conservative local limits")
+	}
+	if len(cfg.Upstreams) != 1 ||
+		cfg.Upstreams["opencode-go"].Headers["Authorization"] != "Bearer test-only-key" {
+		t.Fatal("Studio Pages example must inject only the env-provided Provider key")
+	}
+}
