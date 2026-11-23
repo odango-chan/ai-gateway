@@ -135,6 +135,10 @@ try {
     });
   }
   const context = await browser.newContext({ serviceWorkers: "block" });
+  // Headless CI has no user to click Edge's Local Network Access prompt.
+  // Grant only the actual Pages origin, equivalent to a user choosing Allow.
+  // Do not disable Local Network Access or relax Chromium security flags.
+  await context.grantPermissions(["local-network-access"], { origin: pagesOrigin });
   const page = await context.newPage();
   page.on("console", message => {
     if (message.type() === "error" && browserDiagnostics.length < 12) {
@@ -165,6 +169,7 @@ try {
         method: "POST",
         mode: "cors",
         credentials: "omit",
+        targetAddressSpace: "loopback",
         headers: {
           "Content-Type": "application/json",
           "X-Opencode-Session": "ses_gateway_browser_ci"
