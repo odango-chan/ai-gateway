@@ -24,6 +24,43 @@ a private deployment-wide API key. This model keeps Pages static and Gateway
 independent. No Cloudflare Worker, second Compiler, browser WASM HTTP server,
 or model protocol translator is required.
 
+## Release quick start: only the Provider API key is missing
+
+The release archive includes the Gateway executable, a ready-to-run
+`configs/config.studio-pages.example.yaml` with the Pages origin and loopback
+listener preconfigured, plus launchers for WSL/Linux/macOS and Windows.
+
+**In WSL/Linux** (from the extracted archive directory):
+
+```sh
+bash scripts/start-studio-pages.sh
+```
+
+**In Windows PowerShell** (from the extracted Windows archive):
+
+```powershell
+.\\scripts\\start-studio-pages.ps1
+```
+
+The launchers ask for the OpenCode Go Provider API key without displaying or
+saving it unless `OPENCODE_GO_API_KEY` is already present in their process
+environment. They do not generate a token and they do not store model responses.
+No `GATEWAY_SHARED_TOKEN` is needed because the example binds to loopback.
+The binary requires no Go toolchain. The script also supports Go source checkouts
+when Go 1.25+ is installed.
+
+Then, inside Skill Studio, configure the **application** setting
+`connectionAgent.skillStudio.ai.gatewayUrl` to
+`http://127.0.0.1:8787/opencode-go/openai`. The current
+`connectionAgent.skillStudio.ai.model` default is
+`deepseek-v4.1-flash`; confirm this ID still exists in the selected
+OpenCode Go catalog before using it. Never copy the Provider API key into
+Studio settings or the public Pages source.
+
+This is a local opt-in configuration, not an automatic public Gateway for every
+visitor. If the browser is on Windows and the Gateway is in WSL, verify that
+Windows browser loopback reaches WSL forwarding before debugging CORS.
+
 ## Single-user local / WSL deployment
 
 1. Start Go Gateway on the workstation with an explicitly chosen upstream and
