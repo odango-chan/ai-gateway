@@ -16,6 +16,7 @@ const pagesURL = "https://odango-chan.github.io/ca-skill-studio-demo/";
 const pagesOrigin = new URL(pagesURL).origin;
 const reply = "gateway-real-browser-transport-ok";
 const logLines = [];
+const browserDiagnostics = [];
 let providerCalls = 0;
 let provider;
 let browser;
@@ -135,6 +136,22 @@ try {
   }
   const context = await browser.newContext({ serviceWorkers: "block" });
   const page = await context.newPage();
+  page.on("console", message => {
+    if (message.type() === "error" && browserDiagnostics.length < 12) {
+      browserDiagnostics.push("console: " + message.text().slice(0, 1000));
+    }
+  });
+  page.on("requestfailed", request => {
+    if (browserDiagnostics.length < 12) {
+      browserDiagnostics.push("requestfailed: " + request.method() + " " +
+        request.url().slice(0, 250) + " " + JSON.stringify(request.failure()));
+    }
+  });
+  page.on("pageerror", error => {
+    if (browserDiagnostics.length < 12) {
+      browserDiagnostics.push("pageerror: " + String(error).slice(0, 1000));
+    }
+  });
   const navigation = await page.goto(pagesURL, {
     waitUntil: "domcontentloaded",
     timeout: 60000
@@ -173,6 +190,8 @@ try {
   }));
 } catch (error) {
   console.error("PAGES_ORIGIN_REAL_CHROMIUM_GATEWAY_TRANSPORT_FAIL", String(error));
+  console.error("Gateway provider calls:", providerCalls);
+  if (browserDiagnostics.length) console.error("Browser diagnostics:", browserDiagnostics.join("\n"));
   if (logLines.length) console.error("Gateway log excerpt:", logLines.join("\n"));
   process.exitCode = 1;
 } finally {
