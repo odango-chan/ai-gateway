@@ -80,6 +80,40 @@ OpenCode Go 的推理请求要求提供 `X-Opencode-Session` 请求头。每个�
 
 示例配置同时包含 OpenCode Go 和自建的 `local-qwen` 服务。如果只使用自建模型，请删除或注释 `opencode-go` 配置项，否则启动时会要求提供 `OPENCODE_GO_API_KEY`。
 
+### GitHub Pages Skill Studio：本机/WSL 开箱即用
+
+对于部署在 GitHub Pages 的 AI Studio，发布包额外自带
+`configs/config.studio-pages.example.yaml`：已经配置好
+`https://odango-chan.github.io` 的精确 Origin 白名单、OpenCode Go 上游和
+`127.0.0.1:8787` 本机监听地址。**只需输入自己的 OpenCode Go API Key**，
+不需要修改 YAML，也不需要设置 Gateway 共享 Token。
+
+解压对应平台的发布包后，在目录中运行：
+
+**WSL / Linux / macOS**
+
+```sh
+bash scripts/start-studio-pages.sh
+```
+
+**Windows PowerShell**
+
+```powershell
+.\\scripts\\start-studio-pages.ps1
+```
+
+启动脚本会安全地提示输入 API Key（不回显、不写入文件），也允许事先通过环境变量
+`OPENCODE_GO_API_KEY` 传入。运行预编译包不需要安装 Go。
+
+Studio 应用设置中的 Gateway URL 为
+`http://127.0.0.1:8787/opencode-go/openai`。
+当前 Studio #208 的默认模型为 `deepseek-v4.1-flash`，
+但必须以 OpenCode Go 当前支持的模型列表为准。
+
+注意：**GitHub Pages 仍是静态托管，Gateway 需要运行在你自己的电脑上。**
+CORS 不是用户认证，不应把共享 Gateway Token 或 Provider API Key
+写进公开 Pages。详见[Pages / WSL 接入与验收说明](docs/browser-studio.md)。
+
 ### 从源码构建
 
 从源码构建需要 Go 1.25 或更高版本：
@@ -142,7 +176,7 @@ go build ./cmd/ai-gateway
 - 上游目标只能来自静态配置，请求不能传入任意目标 URL。
 - Gateway 不解析或修改 JSON、Prompt、模型名称或 Provider 专有请求内容。
 - Gateway 不重试请求、不在多个实例间负载均衡，也不转换协议。
-- 默认不启用 CORS。浏览器集成应使用同源接入，或配置可信的前置代理。
+- 默认禁用浏览器 CORS，并拒绝带 Origin 的请求。GitHub Pages 的个人本地 Gateway 可通过 `server.cors_allowed_origins` 开启精确 Origin 白名单；CORS 不构成用户认证。
 - 内置 HTTP 服务不负责 TLS 终止。需要 HTTPS 时，请使用可信反向代理。
 
 ## 发布

@@ -13,6 +13,9 @@ Security fixes are provided for the latest development line. Until a stable rele
 - Keep upstream credentials in environment variables or a protected secret store.
 - Do not commit real credentials or enable verbose logging of request data.
 - Treat access to the gateway as access to every configured upstream.
+- Browser CORS is opt-in and exact-origin only. Allowlisting a public GitHub Pages origin is **not user authentication**; do not inject a shared Gateway or provider token into shipped Pages JavaScript.
+- Local loopback Gateway use still needs an explicit trusted browser-origin allowlist. Deny unexpected `Origin` traffic to avoid cross-site requests causing model usage even when the response cannot be read.
+- For public multi-user access, the current shared-token model is insufficient; retain trusted-network boundaries until server-side identity, authorization and usage limits are implemented.
 
 ## Reporting a vulnerability
 

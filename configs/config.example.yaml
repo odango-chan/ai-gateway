@@ -5,6 +5,10 @@ server:
   # and provide a non-empty environment variable through access_token_env.
   allow_remote: false
   # access_token_env: GATEWAY_SHARED_TOKEN
+  # Optional exact browser origins; omit or keep [] to disable CORS.
+  # For project Pages URLs, use the origin only (no /repository path).
+  # cors_allowed_origins:
+  #   - "https://odango-chan.github.io"
 
 limits:
   max_request_bytes: 16777216

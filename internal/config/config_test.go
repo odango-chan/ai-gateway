@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -156,5 +157,84 @@ func TestExampleConfigurationLoads(t *testing.T) {
 	}
 	if got := cfg.Upstreams["opencode-go"].Headers["Authorization"]; got != "Bearer test-only-key" {
 		t.Fatalf("OpenCode Go API key was not expanded: %q", got)
+	}
+}
+
+func TestCORSExactOriginValidation(t *testing.T) {
+	valid := writeConfig(t, `server:
+  cors_allowed_origins:
+    - https://odango-chan.github.io
+    - http://localhost:3000
+upstreams:
+  local:
+    base_url: http://127.0.0.1:8000
+`)
+	cfg, err := Load(valid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Server.CORSAllowedOrigins) != 2 ||
+		cfg.Server.CORSAllowedOrigins[0] != "https://odango-chan.github.io" {
+		t.Fatalf("unexpected CORS origin allowlist: %v", cfg.Server.CORSAllowedOrigins)
+	}
+
+	for _, testCase := range []struct {
+		name   string
+		origin string
+	}{
+		{"wildcard", "*"},
+		{"subdomain wildcard", "https://*.github.io"},
+		{"null opaque origin", "null"},
+		{"path", "https://odango-chan.github.io/ca-skill-studio-demo"},
+		{"trailing slash", "https://odango-chan.github.io/"},
+		{"query", "https://odango-chan.github.io?token=foo"},
+		{"userinfo", "https://alice@odango-chan.github.io"},
+		{"non HTTP scheme", "file:///tmp"},
+		{"origin whitespace", " https://odango-chan.github.io"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			configText := "server:\n  cors_allowed_origins:\n    - " +
+				strconv.Quote(testCase.origin) +
+				"\nupstreams:\n  local:\n    base_url: http://127.0.0.1:8000\n"
+			if _, err := Load(writeConfig(t, configText)); err == nil {
+				t.Fatalf("expected invalid origin %q to be rejected", testCase.origin)
+			}
+		})
+	}
+	duplicate := writeConfig(t, `server:
+  cors_allowed_origins:
+    - https://odango-chan.github.io
+    - https://odango-chan.github.io
+upstreams:
+  local:
+    base_url: http://127.0.0.1:8000
+`)
+	if _, err := Load(duplicate); err == nil {
+		t.Fatal("duplicate CORS origins must be rejected")
+	}
+}
+
+func TestStudioPagesExampleConfigurationLoads(t *testing.T) {
+	t.Setenv("OPENCODE_GO_API_KEY", "test-only-key")
+	path := filepath.Join("..", "..", "configs", "config.studio-pages.example.yaml")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Server.Listen != "127.0.0.1:8787" ||
+		cfg.Server.AllowRemote ||
+		cfg.AccessToken != "" {
+		t.Fatalf("Studio Pages example must be loopback-only without Gateway token: %+v", cfg.Server)
+	}
+	if len(cfg.Server.CORSAllowedOrigins) != 1 ||
+		cfg.Server.CORSAllowedOrigins[0] != "https://odango-chan.github.io" {
+		t.Fatalf("Studio Pages example has incorrect CORS origins: %v", cfg.Server.CORSAllowedOrigins)
+	}
+	if cfg.Limits.MaxConcurrent != 4 || cfg.Limits.MaxRequestBytes != 1048576 {
+		t.Fatal("Studio Pages example must retain conservative local limits")
+	}
+	if len(cfg.Upstreams) != 1 ||
+		cfg.Upstreams["opencode-go"].Headers["Authorization"] != "Bearer test-only-key" {
+		t.Fatal("Studio Pages example must inject only the env-provided Provider key")
 	}
 }

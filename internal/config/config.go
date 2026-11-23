@@ -48,9 +48,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Listen         string `yaml:"listen"`
-	AllowRemote    bool   `yaml:"allow_remote"`
-	AccessTokenEnv string `yaml:"access_token_env"`
+	Listen             string   `yaml:"listen"`
+	AllowRemote        bool     `yaml:"allow_remote"`
+	AccessTokenEnv     string   `yaml:"access_token_env"`
+	CORSAllowedOrigins []string `yaml:"cors_allowed_origins"`
 }
 
 type LimitsConfig struct {
@@ -196,6 +197,26 @@ func (cfg *Config) Validate() error {
 			return fmt.Errorf("environment variable %q must contain the shared gateway access token", cfg.Server.AccessTokenEnv)
 		}
 		cfg.AccessToken = token
+	}
+
+	// Browser origins are complete, serialized scheme/host/port tuples. Never
+	// accept wildcards, opaque origins, paths, credentials or partial matches.
+	seenOrigins := make(map[string]bool, len(cfg.Server.CORSAllowedOrigins))
+	for _, origin := range cfg.Server.CORSAllowedOrigins {
+		parsed, parseErr := url.Parse(origin)
+		if origin == "" || strings.TrimSpace(origin) != origin ||
+			parseErr != nil || parsed == nil ||
+			(parsed.Scheme != "http" && parsed.Scheme != "https") ||
+			parsed.Opaque != "" || parsed.Host == "" || parsed.Hostname() == "" ||
+			parsed.User != nil || parsed.Path != "" || parsed.RawPath != "" ||
+			parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" ||
+			parsed.String() != origin || strings.Contains(origin, "*") {
+			return fmt.Errorf("server.cors_allowed_origins contains invalid exact origin %q", origin)
+		}
+		if seenOrigins[origin] {
+			return fmt.Errorf("server.cors_allowed_origins contains duplicate origin %q", origin)
+		}
+		seenOrigins[origin] = true
 	}
 
 	if len(cfg.Upstreams) == 0 {
