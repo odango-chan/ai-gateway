@@ -193,9 +193,9 @@ upstreams:
 		{"origin whitespace", " https://odango-chan.github.io"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			configText := "server:\\n  cors_allowed_origins:\\n    - " +
+			configText := "server:\n  cors_allowed_origins:\n    - " +
 				strconv.Quote(testCase.origin) +
-				"\\nupstreams:\\n  local:\\n    base_url: http://127.0.0.1:8000\\n"
+				"\nupstreams:\n  local:\n    base_url: http://127.0.0.1:8000\n"
 			if _, err := Load(writeConfig(t, configText)); err == nil {
 				t.Fatalf("expected invalid origin %q to be rejected", testCase.origin)
 			}
