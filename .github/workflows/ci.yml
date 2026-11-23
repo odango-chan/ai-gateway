@@ -38,6 +38,25 @@ jobs:
           [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/start-studio-pages.ps1', [ref]$tokens, [ref]$errors)
           if ($errors.Count -gt 0) { throw ($errors -join '; ') }
 
+  release-layout:
+    name: Validate release archive layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble public example payload
+        run: |
+          set -euo pipefail
+          mkdir -p staging/configs
+          cp configs/*.example.yaml staging/configs/
+          cp -R docs scripts staging/
+          tar -czf payload.tar.gz -C staging .
+          tar -tzf payload.tar.gz | grep -Fx './configs/config.studio-pages.example.yaml'
+          tar -tzf payload.tar.gz | grep -Fx './scripts/start-studio-pages.sh'
+          tar -tzf payload.tar.gz | grep -Fx './scripts/start-studio-pages.ps1'
+          tar -tzf payload.tar.gz | grep -Fx './docs/browser-studio.md'
+          test ! -e staging/.env
+          test ! -e staging/config.yaml
+
   cross-build:
     name: Cross-build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
