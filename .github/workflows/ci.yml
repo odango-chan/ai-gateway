@@ -87,6 +87,76 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  studio-pages-windows-preview:
+    name: Package native Windows Studio Gateway preview
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+      - name: Build Windows exe and package Studio sample
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CGO_ENABLED = "0"
+          New-Item -ItemType Directory -Force staging/configs, dist | Out-Null
+          go build -trimpath -ldflags="-s -w" -o staging/ai-gateway.exe ./cmd/ai-gateway
+          if ($LASTEXITCODE -ne 0) { throw "Gateway build failed" }
+          Copy-Item LICENSE, README.md, README.zh-CN.md, SECURITY.md, CONTRIBUTING.md staging/
+          Copy-Item configs/*.example.yaml staging/configs/
+          Copy-Item docs, scripts staging/ -Recurse
+          foreach ($required in @(
+            "staging/ai-gateway.exe",
+            "staging/configs/config.studio-pages.example.yaml",
+            "staging/scripts/start-studio-pages.ps1",
+            "staging/docs/browser-studio.md"
+          )) {
+            if (-not (Test-Path $required)) { throw "Missing release payload: $required" }
+          }
+          Compress-Archive -Path staging/* -DestinationPath dist/ai-gateway-windows-amd64-studio-preview.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-gateway-windows-amd64-studio-preview
+          path: dist/ai-gateway-windows-amd64-studio-preview.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  studio-pages-windows-chromium:
+    name: Real Windows Edge/Chrome Pages to Gateway
+    runs-on: windows-latest
+    needs: studio-pages-windows-preview
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@v4
+        with:
+          name: ai-gateway-windows-amd64-studio-preview
+          path: preview
+      - name: Extract exact preview package under test
+        shell: pwsh
+        run: |
+          Expand-Archive -Path preview/ai-gateway-windows-amd64-studio-preview.zip -DestinationPath browser-dist
+          if (-not (Test-Path browser-dist/ai-gateway.exe)) { throw "No packaged Windows Gateway exe" }
+      - name: Install minimal real-browser driver
+        shell: pwsh
+        run: |
+          npm install --no-save --no-package-lock --no-audit --no-fund --ignore-scripts playwright-core@1.55.0
+          if ($LASTEXITCODE -ne 0) { throw "Playwright-core installation failed" }
+      - name: Real published Pages origin to Go Gateway browser request
+        shell: pwsh
+        env:
+          GATEWAY_BINARY_PATH: browser-dist/ai-gateway.exe
+        run: |
+          node --check scripts/acceptance-pages-windows-chromium.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Browser smoke script syntax invalid" }
+          node scripts/acceptance-pages-windows-chromium.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Real browser-to-Gateway acceptance failed" }
+
   cross-build:
     name: Cross-build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
